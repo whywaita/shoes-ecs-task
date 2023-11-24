@@ -12,6 +12,9 @@
   - The ID of Subnet
 - "ECS_TASK_REGION"
   - The name of Region
+- "ECS_TASK_NO_WAIT"
+  - Optional (default: false)
+  - If this value is set, myshoes does not wait for the task to be created.
 
 ## Acknowledgement
 

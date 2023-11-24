@@ -26,6 +26,8 @@ type AppConfig struct {
 	TaskDefinition string
 	SubnetID       string
 	Region         string
+
+	NoWait bool
 }
 
 func main() {
@@ -64,19 +66,26 @@ func loadAppConfig() (*AppConfig, error) {
 		EnvTaskDefinition = "ECS_TASK_DEFINITION_ARN"
 		EnvSubnetID       = "ECS_TASK_SUBNET_ID"
 		EnvRegion         = "ECS_TASK_REGION"
+		EnvNoWait         = "ECS_TASK_NO_WAIT"
 	)
 
-	if os.Getenv(EnvCluster) == "" {
+	if strings.EqualFold(os.Getenv(EnvCluster), "") {
 		return nil, fmt.Errorf("must set %s", EnvCluster)
 	}
-	if os.Getenv(EnvTaskDefinition) == "" {
+	if strings.EqualFold(os.Getenv(EnvTaskDefinition), "") {
 		return nil, fmt.Errorf("must set %s", EnvTaskDefinition)
 	}
-	if os.Getenv(EnvSubnetID) == "" {
+	if strings.EqualFold(os.Getenv(EnvSubnetID), "") {
 		return nil, fmt.Errorf("must set %s", EnvSubnetID)
 	}
-	if os.Getenv(EnvRegion) == "" {
+	if strings.EqualFold(os.Getenv(EnvRegion), "") {
 		return nil, fmt.Errorf("must set %s", EnvRegion)
+	}
+
+	// Optional
+	noWait := false
+	if strings.EqualFold(os.Getenv(EnvNoWait), "true") {
+		noWait = true
 	}
 
 	return &AppConfig{
@@ -84,6 +93,7 @@ func loadAppConfig() (*AppConfig, error) {
 		TaskDefinition: os.Getenv(EnvTaskDefinition),
 		SubnetID:       os.Getenv(EnvSubnetID),
 		Region:         os.Getenv(EnvRegion),
+		NoWait:         noWait,
 	}, nil
 }
 
@@ -173,6 +183,11 @@ func runTask(ctx context.Context, appConfig AppConfig, oneLineSetupScript string
 	}
 
 	taskArn := aws.ToString(runOut.Tasks[0].TaskArn)
+
+	if appConfig.NoWait {
+		return taskArn, nil
+	}
+
 	waiter := ecs.NewTasksRunningWaiter(client)
 	descTaskIn := &ecs.DescribeTasksInput{
 		Tasks:   []string{taskArn},
